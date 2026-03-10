@@ -1,0 +1,2591 @@
+{
+  "info": {
+    "_postman_id": "cd415f12-a0e8-46f6-ad7f-7213c383e8aa",
+    "name": "FirstClub Membership Service",
+    "description": "Complete API collection for the FirstClub Membership Program.\n\n## Quick Start\n1. Start PostgreSQL: `docker-compose up -d`\n2. Start app: `mvn clean spring-boot:run`\n3. Run '1. Get Plans' to populate plan IDs\n4. Run '2. Get Tiers' to populate tier IDs\n5. Follow the numbered sequence in each folder\n\n## Variables\n- `baseUrl`: http://localhost:8080\n- `userId`: auto-generated UUID\n- Plan/Tier IDs: auto-populated from GET responses",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53012943",
+    "_collection_link": "https://go.postman.co/collection/53012943-cd415f12-a0e8-46f6-ad7f-7213c383e8aa?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "0. Setup",
+      "item": [
+        {
+          "name": "0.1 Generate User ID",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate a random UUID for testing",
+                  "const uuid = require('uuid');",
+                  "// Fallback: manual UUID generation if uuid module unavailable",
+                  "function generateUUID() {",
+                  "    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {",
+                  "        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);",
+                  "        return v.toString(16);",
+                  "    });",
+                  "}",
+                  "const userId = generateUUID();",
+                  "pm.collectionVariables.set('userId', userId);",
+                  "console.log('Generated userId: ' + userId);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('userId is set', function() {",
+                  "    const userId = pm.collectionVariables.get('userId');",
+                  "    pm.expect(userId).to.not.be.empty;",
+                  "    console.log('Using userId: ' + userId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/membership/plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "membership",
+                "plans"
+              ]
+            },
+            "description": "Dummy request that generates a userId. The actual user ID is set in the pre-request script."
+          },
+          "response": []
+        }
+      ],
+      "description": "Run these first to populate collection variables."
+    },
+    {
+      "name": "1. Plans & Tiers (Catalog)",
+      "item": [
+        {
+          "name": "1.1 Get All Plans",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Has plans', function() { pm.expect(body.data.length).to.be.greaterThan(0); });",
+                  "",
+                  "// Auto-populate plan IDs by duration",
+                  "body.data.forEach(plan => {",
+                  "    if (plan.duration === 'MONTHLY') pm.collectionVariables.set('monthlyPlanId', plan.id);",
+                  "    if (plan.duration === 'QUARTERLY') pm.collectionVariables.set('quarterlyPlanId', plan.id);",
+                  "    if (plan.duration === 'YEARLY') pm.collectionVariables.set('yearlyPlanId', plan.id);",
+                  "});",
+                  "",
+                  "console.log('Monthly Plan ID: ' + pm.collectionVariables.get('monthlyPlanId'));",
+                  "console.log('Quarterly Plan ID: ' + pm.collectionVariables.get('quarterlyPlanId'));",
+                  "console.log('Yearly Plan ID: ' + pm.collectionVariables.get('yearlyPlanId'));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "packages": {},
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/plans/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "plans",
+                ""
+              ]
+            },
+            "description": "List all active membership plans (Monthly, Quarterly, Yearly). Auto-populates plan ID variables."
+          },
+          "response": []
+        },
+        {
+          "name": "1.2 Get Single Plan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/plans/{{silverTierId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "plans",
+                "{{silverTierId}}"
+              ]
+            },
+            "description": "Get details of a specific plan by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "1.3 Get All Tiers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Has tiers', function() { pm.expect(body.data.length).to.be.greaterThan(0); });",
+                  "",
+                  "// Auto-populate tier IDs by level",
+                  "body.data.forEach(tier => {",
+                  "    if (tier.tierLevel === 'SILVER') pm.collectionVariables.set('silverTierId', tier.id);",
+                  "    if (tier.tierLevel === 'GOLD') pm.collectionVariables.set('goldTierId', tier.id);",
+                  "    if (tier.tierLevel === 'PLATINUM') pm.collectionVariables.set('platinumTierId', tier.id);",
+                  "});",
+                  "",
+                  "console.log('Silver Tier ID: ' + pm.collectionVariables.get('silverTierId'));",
+                  "console.log('Gold Tier ID: ' + pm.collectionVariables.get('goldTierId'));",
+                  "console.log('Platinum Tier ID: ' + pm.collectionVariables.get('platinumTierId'));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tiers/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tiers",
+                ""
+              ]
+            },
+            "description": "List all tiers with benefits and eligibility criteria. Auto-populates tier ID variables."
+          },
+          "response": []
+        },
+        {
+          "name": "1.4 Get Single Tier",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/membership/tiers/{{goldTierId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "membership",
+                "tiers",
+                "{{goldTierId}}"
+              ]
+            },
+            "description": "Get details of a specific tier including benefits and eligibility criteria."
+          },
+          "response": []
+        }
+      ],
+      "description": "Browse available plans and tiers. Run these first to auto-populate IDs."
+    },
+    {
+      "name": "2. Subscribe",
+      "item": [
+        {
+          "name": "2.1 Subscribe (auto tier)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 Created', function() { pm.response.to.have.status(201); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Is member', function() { pm.expect(body.data.member).to.be.true; });",
+                  "pm.test('Has subscription', function() { pm.expect(body.data.subscription).to.not.be.null; });",
+                  "pm.test('Has tier', function() { pm.expect(body.data.tier).to.not.be.null; });",
+                  "pm.test('Default tier is SILVER', function() { pm.expect(body.data.tier.tierLevel).to.eql('SILVER'); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"planId\": \"{{monthlyPlanId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/subscribe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "subscribe"
+              ]
+            },
+            "description": "Subscribe with plan only. Tier is auto-calculated (defaults to Silver for new users)."
+          },
+          "response": []
+        },
+        {
+          "name": "2.2 Subscribe (user picks Silver tier)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 Created', function() { pm.response.to.have.status(201); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Tier is SILVER', function() { pm.expect(body.data.tier.tierLevel).to.eql('SILVER'); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate a fresh userId for this test",
+                  "function generateUUID() {",
+                  "    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {",
+                  "        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);",
+                  "        return v.toString(16);",
+                  "    });",
+                  "}",
+                  "pm.collectionVariables.set('userId', generateUUID());"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"planId\": \"{{monthlyPlanId}}\",\n    \"tierId\": \"{{silverTierId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/subscribe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "subscribe"
+              ]
+            },
+            "description": "Subscribe with plan + user-selected Silver tier. Silver has no criteria, so always succeeds."
+          },
+          "response": []
+        },
+        {
+          "name": "2.3 Duplicate subscribe (WILL FAIL)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409 Conflict', function() { pm.response.to.have.status(409); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"planId\": \"{{monthlyPlanId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/subscribe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "subscribe"
+              ]
+            },
+            "description": "Try subscribing again with same userId. EXPECTED TO FAIL with 409 Conflict."
+          },
+          "response": []
+        },
+        {
+          "name": "2.4 Subscribe (user picks Gold - WILL FAIL)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 - not eligible', function() { pm.response.to.have.status(400); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Error mentions unmet criteria', function() {",
+                  "    pm.expect(body.message).to.include('not eligible');",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "function generateUUID() {",
+                  "    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {",
+                  "        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);",
+                  "        return v.toString(16);",
+                  "    });",
+                  "}",
+                  "pm.collectionVariables.set('userId', generateUUID());"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"planId\": \"{{monthlyPlanId}}\",\n    \"tierId\": \"{{goldTierId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/subscribe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "subscribe"
+              ]
+            },
+            "description": "Attempt to subscribe with Gold tier. EXPECTED TO FAIL with 400 because the new user has no orders and doesn't meet Gold criteria (10 orders + ₹3000 spend)."
+          },
+          "response": []
+        },
+        {
+          "name": "2.5 Subscribe (auto tier) For Next Data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 Created', function() { pm.response.to.have.status(201); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Is member', function() { pm.expect(body.data.member).to.be.true; });",
+                  "pm.test('Has subscription', function() { pm.expect(body.data.subscription).to.not.be.null; });",
+                  "pm.test('Has tier', function() { pm.expect(body.data.tier).to.not.be.null; });",
+                  "pm.test('Default tier is SILVER', function() { pm.expect(body.data.tier.tierLevel).to.eql('SILVER'); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"planId\": \"{{monthlyPlanId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/subscribe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "subscribe"
+              ]
+            },
+            "description": "Subscribe with plan only. Tier is auto-calculated (defaults to Silver for new users)."
+          },
+          "response": []
+        }
+      ],
+      "description": "Subscribe a user to a plan. Two flows: with user-selected tier or auto-calculated."
+    },
+    {
+      "name": "3. Tier Eligibility & Evaluation",
+      "item": [
+        {
+          "name": "3.1 Check Eligibility for Gold (before orders)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Not eligible', function() { pm.expect(body.data.eligible).to.be.false; });",
+                  "pm.test('Has failed criteria', function() { pm.expect(body.data.failedCriteria.length).to.be.greaterThan(0); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tiers/check-eligibility/{{userId}}/{{goldTierId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tiers",
+                "check-eligibility",
+                "{{userId}}",
+                "{{goldTierId}}"
+              ]
+            },
+            "description": "Check if user qualifies for Gold. Should fail — no orders yet."
+          },
+          "response": []
+        },
+        {
+          "name": "3.2 Simulate Orders (qualify for Gold)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Order count updated', function() { pm.expect(body.data.orderCount).to.eql(12); });",
+                  "pm.test('Order value updated', function() { pm.expect(Number(body.data.totalOrderValue)).to.eql(5000); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"orderCount\": 12,\n    \"totalValue\": 5000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/demo/simulate-orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "demo",
+                "simulate-orders"
+              ]
+            },
+            "description": "Simulate 12 orders worth ₹5000. This exceeds Gold criteria (10 orders + ₹3000)."
+          },
+          "response": []
+        },
+        {
+          "name": "3.3 Check Eligibility for Gold (after orders)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Now eligible!', function() { pm.expect(body.data.eligible).to.be.true; });",
+                  "pm.test('No failed criteria', function() { pm.expect(body.data.failedCriteria.length).to.eql(0); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tiers/check-eligibility/{{userId}}/{{goldTierId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tiers",
+                "check-eligibility",
+                "{{userId}}",
+                "{{goldTierId}}"
+              ]
+            },
+            "description": "Check Gold eligibility again — should now pass."
+          },
+          "response": []
+        },
+        {
+          "name": "3.4 Evaluate Tier (sync)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Tier is GOLD', function() { pm.expect(body.data.tierLevel).to.eql('GOLD'); });",
+                  "pm.test('Previous tier was SILVER', function() { pm.expect(body.data.previousTierLevel).to.eql('SILVER'); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tiers/evaluate-tier",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tiers",
+                "evaluate-tier"
+              ]
+            },
+            "description": "Re-evaluate tier. Should promote from Silver → Gold based on order activity."
+          },
+          "response": []
+        },
+        {
+          "name": "3.5 Simulate More Orders (qualify for Platinum)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"orderCount\": 18,\n    \"totalValue\": 10000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/demo/simulate-orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "demo",
+                "simulate-orders"
+              ]
+            },
+            "description": "Add 18 more orders + ₹10000. Totals: 30 orders, ₹15000 (exceeds Platinum: 25 orders + ₹10000)."
+          },
+          "response": []
+        },
+        {
+          "name": "3.6 Evaluate Tier → Platinum",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Tier is PLATINUM', function() { pm.expect(body.data.tierLevel).to.eql('PLATINUM'); });",
+                  "pm.test('Previous tier was GOLD', function() { pm.expect(body.data.previousTierLevel).to.eql('GOLD'); });",
+                  "pm.test('Has priority support', function() {",
+                  "    const hasPriority = body.data.activeBenefits.some(b => b.benefitType === 'PRIORITY_SUPPORT');",
+                  "    pm.expect(hasPriority).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tiers/evaluate-tier",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tiers",
+                "evaluate-tier"
+              ]
+            },
+            "description": "Evaluate again. Should promote Gold → Platinum."
+          },
+          "response": []
+        },
+        {
+          "name": "3.7 Evaluate Tier (async)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 202 Accepted', function() { pm.response.to.have.status(202); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tiers/evaluate-tier-async",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tiers",
+                "evaluate-tier-async"
+              ]
+            },
+            "description": "Fire-and-forget tier evaluation. Returns 202 immediately, processes in background thread pool."
+          },
+          "response": []
+        }
+      ],
+      "description": "Check eligibility, simulate orders, then re-evaluate tier."
+    },
+    {
+      "name": "4. Membership Status & History",
+      "item": [
+        {
+          "name": "4.1 Get Full Membership Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Has subscription', function() { pm.expect(body.data.subscription).to.not.be.null; });",
+                  "pm.test('Has tier', function() { pm.expect(body.data.tier).to.not.be.null; });",
+                  "pm.test('Is active member', function() { pm.expect(body.data.member).to.be.true; });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/user/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "user",
+                "{{userId}}"
+              ]
+            },
+            "description": "Combined view: subscription + tier + benefits. This is the main 'membership card' endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "4.2 Get Subscription History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Has history', function() { pm.expect(body.data.length).to.be.greaterThan(0); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/user/{{userId}}/history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "user",
+                "{{userId}}",
+                "history"
+              ]
+            },
+            "description": "Full subscription history (includes upgraded, downgraded, cancelled records)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Change Plan (Upgrade/Downgrade)",
+      "item": [
+        {
+          "name": "5.1 Upgrade to Yearly Plan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('New plan is YEARLY', function() { pm.expect(body.data.subscription.plan.duration).to.eql('YEARLY'); });",
+                  "pm.test('Is active member', function() { pm.expect(body.data.member).to.be.true; });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"newPlanId\": \"{{yearlyPlanId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/change-plan",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "change-plan"
+              ]
+            },
+            "description": "Upgrade from Monthly → Yearly. Old subscription is marked UPGRADED, new one created."
+          },
+          "response": []
+        },
+        {
+          "name": "5.2 Downgrade to Quarterly Plan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('New plan is QUARTERLY', function() { pm.expect(body.data.subscription.plan.duration).to.eql('QUARTERLY'); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"newPlanId\": \"{{quarterlyPlanId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/change-plan",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "change-plan"
+              ]
+            },
+            "description": "Downgrade from Yearly → Quarterly. Old subscription marked DOWNGRADED."
+          },
+          "response": []
+        },
+        {
+          "name": "5.3 Change to Same Plan (WILL FAIL)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', function() { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"newPlanId\": \"{{quarterlyPlanId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/change-plan",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "change-plan"
+              ]
+            },
+            "description": "Try changing to same plan. EXPECTED TO FAIL with 400."
+          },
+          "response": []
+        },
+        {
+          "name": "5.4 Check History After Changes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/user/{{userId}}/history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "user",
+                "{{userId}}",
+                "history"
+              ]
+            },
+            "description": "View full history — should show ACTIVE, UPGRADED, DOWNGRADED records."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Cancel",
+      "item": [
+        {
+          "name": "6.1 Cancel Subscription",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is CANCELLED', function() { pm.expect(body.data.status).to.eql('CANCELLED'); });",
+                  "pm.test('Has cancellation reason', function() { pm.expect(body.data.cancellationReason).to.not.be.null; });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"reason\": \"Testing cancellation flow\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "cancel"
+              ]
+            },
+            "description": "Cancel active subscription. Status set to CANCELLED, reason recorded."
+          },
+          "response": []
+        },
+        {
+          "name": "6.2 Cancel Again (WILL FAIL)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404 - no active subscription', function() { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"reason\": \"Trying again\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "cancel"
+              ]
+            },
+            "description": "Try cancelling again. EXPECTED TO FAIL — no active subscription."
+          },
+          "response": []
+        },
+        {
+          "name": "6.3 Membership Status After Cancel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('No active subscription', function() { pm.expect(body.data.subscription).to.be.null; });",
+                  "pm.test('Not a member', function() { pm.expect(body.data.member).to.be.false; });",
+                  "pm.test('Tier still exists', function() { pm.expect(body.data.tier).to.not.be.null; });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/user/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "user",
+                "{{userId}}"
+              ]
+            },
+            "description": "Check status after cancellation. Subscription is null but tier history remains."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Demo Utilities",
+      "item": [
+        {
+          "name": "7.1 Simulate Orders",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"orderCount\": 5,\n    \"totalValue\": 2000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/demo/simulate-orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "demo",
+                "simulate-orders"
+              ]
+            },
+            "description": "Add mock orders for a user. Values accumulate across calls."
+          },
+          "response": []
+        },
+        {
+          "name": "7.2 Add User to Cohort",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"cohortName\": \"EARLY_ADOPTER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/demo/add-cohort",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "demo",
+                "add-cohort"
+              ]
+            },
+            "description": "Add user to a named cohort for cohort-based tier eligibility."
+          },
+          "response": []
+        },
+        {
+          "name": "7.3 Get User Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/demo/user-stats/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "demo",
+                "user-stats",
+                "{{userId}}"
+              ]
+            },
+            "description": "View mock order data for a user (order count, total value, cohorts)."
+          },
+          "response": []
+        },
+        {
+          "name": "7.4 Reset User Mock Data",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/demo/reset/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "demo",
+                "reset",
+                "{{userId}}"
+              ]
+            },
+            "description": "Clear all mock order data for a user."
+          },
+          "response": []
+        }
+      ],
+      "description": "Helper endpoints for simulating order data. These are demo-only."
+    },
+    {
+      "name": "8. Validation & Edge Cases",
+      "item": [
+        {
+          "name": "8.1 Subscribe - Missing userId (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', function() { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"planId\": \"{{monthlyPlanId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/subscribe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "subscribe"
+              ]
+            },
+            "description": "Missing required userId field. Should return validation error."
+          },
+          "response": []
+        },
+        {
+          "name": "8.2 Subscribe - Invalid Plan ID (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', function() { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"planId\": \"00000000-0000-0000-0000-000000000000\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/subscribe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "subscribe"
+              ]
+            },
+            "description": "Non-existent plan ID. Should return 404."
+          },
+          "response": []
+        },
+        {
+          "name": "8.3 Get Non-existent User Membership",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 with empty data', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.member).to.be.false;",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/subscriptions/user/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "subscriptions",
+                "user",
+                "00000000-0000-0000-0000-000000000000"
+              ]
+            },
+            "description": "Get membership for a user who never subscribed. Returns isMember=false."
+          },
+          "response": []
+        },
+        {
+          "name": "8.4 Check Eligibility - Invalid Tier (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', function() { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tiers/check-eligibility/{{userId}}/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tiers",
+                "check-eligibility",
+                "{{userId}}",
+                "00000000-0000-0000-0000-000000000000"
+              ]
+            },
+            "description": "Check eligibility for a non-existent tier. Should return 404."
+          },
+          "response": []
+        }
+      ],
+      "description": "Error scenarios for testing error handling."
+    },
+    {
+      "name": "9. Free Delivery Checks",
+      "item": [
+        {
+          "name": "9.0 Evaluate Tier (sync)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.test('Tier is GOLD', function() { pm.expect(body.data.tierLevel).to.eql('GOLD'); });",
+                  "pm.test('Previous tier was SILVER', function() { pm.expect(body.data.previousTierLevel).to.eql('SILVER'); });"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tiers/evaluate-tier",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tiers",
+                "evaluate-tier"
+              ]
+            },
+            "description": "Re-evaluate tier. Should promote from Silver → Gold based on order activity."
+          },
+          "response": []
+        },
+        {
+          "name": "1.1 Check - Order ₹300 (below minimum - FAIL)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Not eligible', function() { pm.expect(body.data.eligible).to.be.false; });",
+                  "pm.test('Reason mentions minimum', function() {",
+                  "    pm.expect(body.data.reason).to.include('Minimum order value');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/check/{{userId}}/FREE_DELIVERY?orderValue=300",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "check",
+                "{{userId}}",
+                "FREE_DELIVERY"
+              ],
+              "query": [
+                {
+                  "key": "orderValue",
+                  "value": "300"
+                }
+              ]
+            },
+            "description": "Order is ₹300 but Silver needs ₹500 minimum for free delivery. Should fail."
+          },
+          "response": []
+        },
+        {
+          "name": "1.2 Check - Order ₹600 (above minimum - PASS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Eligible', function() { pm.expect(body.data.eligible).to.be.true; });",
+                  "pm.test('Remaining usage is 3', function() { pm.expect(body.data.remainingUsage).to.eql(3); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/check/{{userId}}/FREE_DELIVERY?orderValue=600",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "check",
+                "{{userId}}",
+                "FREE_DELIVERY"
+              ],
+              "query": [
+                {
+                  "key": "orderValue",
+                  "value": "600"
+                }
+              ]
+            },
+            "description": "Order is ₹600, above the ₹500 minimum. Should pass with 3 remaining uses."
+          },
+          "response": []
+        },
+        {
+          "name": "1.3 Record Usage #1",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "function generateUUID() {",
+                  "    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {",
+                  "        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);",
+                  "        return v.toString(16);",
+                  "    });",
+                  "}",
+                  "pm.collectionVariables.set('orderId1', generateUUID());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"benefitType\": \"FREE_DELIVERY\",\n    \"orderId\": \"{{orderId1}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/record-usage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "record-usage"
+              ]
+            },
+            "description": "Record 1st free delivery usage. Remaining: 2/3."
+          },
+          "response": []
+        },
+        {
+          "name": "1.4 Check - After 1 usage (2 remaining)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Still eligible', function() { pm.expect(body.data.eligible).to.be.true; });",
+                  "pm.test('Used 1 this period', function() { pm.expect(body.data.usedThisPeriod).to.eql(1); });",
+                  "pm.test('Remaining is 2', function() { pm.expect(body.data.remainingUsage).to.eql(2); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/check/{{userId}}/FREE_DELIVERY?orderValue=600",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "check",
+                "{{userId}}",
+                "FREE_DELIVERY"
+              ],
+              "query": [
+                {
+                  "key": "orderValue",
+                  "value": "600"
+                }
+              ]
+            },
+            "description": "After 1 usage, should show 2 remaining."
+          },
+          "response": []
+        },
+        {
+          "name": "1.5 Record Usage #2",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "function generateUUID() {",
+                  "    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {",
+                  "        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);",
+                  "        return v.toString(16);",
+                  "    });",
+                  "}",
+                  "pm.collectionVariables.set('orderId2', generateUUID());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"benefitType\": \"FREE_DELIVERY\",\n    \"orderId\": \"{{orderId2}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/record-usage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "record-usage"
+              ]
+            },
+            "description": "Record 2nd free delivery usage. Remaining: 1/3."
+          },
+          "response": []
+        },
+        {
+          "name": "1.6 Record Usage #3",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "function generateUUID() {",
+                  "    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {",
+                  "        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);",
+                  "        return v.toString(16);",
+                  "    });",
+                  "}",
+                  "pm.collectionVariables.set('orderId3', generateUUID());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"benefitType\": \"FREE_DELIVERY\",\n    \"orderId\": \"{{orderId3}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/record-usage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "record-usage"
+              ]
+            },
+            "description": "Record 3rd free delivery usage. This exhausts the monthly limit."
+          },
+          "response": []
+        },
+        {
+          "name": "1.7 Check - After 3 usages (LIMIT REACHED)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('No longer eligible', function() { pm.expect(body.data.eligible).to.be.false; });",
+                  "pm.test('Used 3 this period', function() { pm.expect(body.data.usedThisPeriod).to.eql(3); });",
+                  "pm.test('Remaining is 0', function() { pm.expect(body.data.remainingUsage).to.eql(0); });",
+                  "pm.test('Reason mentions limit', function() {",
+                  "    pm.expect(body.data.reason).to.include('Usage limit reached');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/check/{{userId}}/FREE_DELIVERY?orderValue=600",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "check",
+                "{{userId}}",
+                "FREE_DELIVERY"
+              ],
+              "query": [
+                {
+                  "key": "orderValue",
+                  "value": "600"
+                }
+              ]
+            },
+            "description": "All 3 free deliveries exhausted. Should show not eligible with limit reached."
+          },
+          "response": []
+        },
+        {
+          "name": "1.8 Record Usage #4 (WILL FAIL - limit reached)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', function() { pm.response.to.have.status(400); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Error mentions limit', function() {",
+                  "    pm.expect(body.message).to.include('limit already reached');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"benefitType\": \"FREE_DELIVERY\",\n    \"orderId\": \"00000000-0000-0000-0000-000000000099\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/record-usage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "record-usage"
+              ]
+            },
+            "description": "Try to record a 4th free delivery. EXPECTED TO FAIL with 400."
+          },
+          "response": []
+        }
+      ],
+      "description": "Silver tier: free delivery on orders above ₹500, max 3/month."
+    },
+    {
+      "name": "10. Discount Checks",
+      "item": [
+        {
+          "name": "2.1 Check Discount - Order ₹100 (below min - FAIL)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Not eligible', function() { pm.expect(body.data.eligible).to.be.false; });",
+                  "pm.test('Reason mentions minimum', function() {",
+                  "    pm.expect(body.data.reason).to.include('Minimum order value');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/check/{{userId}}/DISCOUNT_PERCENTAGE?orderValue=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "check",
+                "{{userId}}",
+                "DISCOUNT_PERCENTAGE"
+              ],
+              "query": [
+                {
+                  "key": "orderValue",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "₹100 order, Silver needs ₹200 minimum for discount."
+          },
+          "response": []
+        },
+        {
+          "name": "2.2 Check Discount - Order ₹5000 (eligible, shows cap)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Eligible', function() { pm.expect(body.data.eligible).to.be.true; });",
+                  "pm.test('Value is 5%', function() { pm.expect(Number(body.data.benefitValue)).to.eql(5); });",
+                  "pm.test('Max cap is 200', function() { pm.expect(Number(body.data.maxDiscountCap)).to.eql(200); });",
+                  "// 5% of 5000 = 250, but capped at 200. Checkout calculates this."
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/check/{{userId}}/DISCOUNT_PERCENTAGE?orderValue=5000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "check",
+                "{{userId}}",
+                "DISCOUNT_PERCENTAGE"
+              ],
+              "query": [
+                {
+                  "key": "orderValue",
+                  "value": "5000"
+                }
+              ]
+            },
+            "description": "₹5000 order. 5% = ₹250 but capped at ₹200. Response shows value=5 and maxDiscountCap=200 for checkout to calculate."
+          },
+          "response": []
+        },
+        {
+          "name": "2.3 Check Discount - Unlimited usage (no limit on discounts)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Eligible', function() { pm.expect(body.data.eligible).to.be.true; });",
+                  "pm.test('No usage limit', function() { pm.expect(body.data.maxUsageLimit).to.be.null; });",
+                  "pm.test('Remaining is null (unlimited)', function() { pm.expect(body.data.remainingUsage).to.be.null; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/check/{{userId}}/DISCOUNT_PERCENTAGE?orderValue=500",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "check",
+                "{{userId}}",
+                "DISCOUNT_PERCENTAGE"
+              ],
+              "query": [
+                {
+                  "key": "orderValue",
+                  "value": "500"
+                }
+              ]
+            },
+            "description": "Discount has no maxUsageLimit — unlimited uses per month."
+          },
+          "response": []
+        }
+      ],
+      "description": "Silver tier: 5% discount on orders above ₹200, max ₹200 off."
+    },
+    {
+      "name": "11. Benefit Not in Tier",
+      "item": [
+        {
+          "name": "3.1 Check Priority Support (Silver doesn't have it)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Not eligible', function() { pm.expect(body.data.eligible).to.be.false; });",
+                  "pm.test('Reason mentions tier', function() {",
+                  "    pm.expect(body.data.reason).to.include('does not include');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/check/{{userId}}/PRIORITY_SUPPORT?orderValue=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "check",
+                "{{userId}}",
+                "PRIORITY_SUPPORT"
+              ],
+              "query": [
+                {
+                  "key": "orderValue",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Silver tier doesn't include PRIORITY_SUPPORT (only Platinum does)."
+          },
+          "response": []
+        },
+        {
+          "name": "3.2 Check Cashback (Silver doesn't have it)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Not eligible', function() { pm.expect(body.data.eligible).to.be.false; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/check/{{userId}}/CASHBACK_PERCENTAGE?orderValue=1000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "check",
+                "{{userId}}",
+                "CASHBACK_PERCENTAGE"
+              ],
+              "query": [
+                {
+                  "key": "orderValue",
+                  "value": "1000"
+                }
+              ]
+            },
+            "description": "Silver tier doesn't include CASHBACK_PERCENTAGE (only Platinum does)."
+          },
+          "response": []
+        }
+      ],
+      "description": "Silver tier doesn't have PRIORITY_SUPPORT or CASHBACK."
+    },
+    {
+      "name": "12. Edge Cases",
+      "item": [
+        {
+          "name": "4.1 Check - User with no tier (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', function() { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/check/00000000-0000-0000-0000-000000000000/FREE_DELIVERY?orderValue=600",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "check",
+                "00000000-0000-0000-0000-000000000000",
+                "FREE_DELIVERY"
+              ],
+              "query": [
+                {
+                  "key": "orderValue",
+                  "value": "600"
+                }
+              ]
+            },
+            "description": "Unknown user has no tier. Should return 404."
+          },
+          "response": []
+        },
+        {
+          "name": "4.2 Check - Invalid benefit type (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', function() { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/check/{{userId}}/INVALID_TYPE?orderValue=600",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "check",
+                "{{userId}}",
+                "INVALID_TYPE"
+              ],
+              "query": [
+                {
+                  "key": "orderValue",
+                  "value": "600"
+                }
+              ]
+            },
+            "description": "Non-existent benefit type. Should return 400."
+          },
+          "response": []
+        },
+        {
+          "name": "4.3 Check - Negative order value",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function() { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Not eligible', function() { pm.expect(body.data.eligible).to.be.false; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/benefits/check/{{userId}}/FREE_DELIVERY?orderValue=-100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "benefits",
+                "check",
+                "{{userId}}",
+                "FREE_DELIVERY"
+              ],
+              "query": [
+                {
+                  "key": "orderValue",
+                  "value": "-100"
+                }
+              ]
+            },
+            "description": "Negative order value should fail the minimum order check."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "13. Create and Update Tiers",
+      "item": [
+        {
+          "name": "Get User Tier",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tiers/users/{{userId}}/tier",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tiers",
+                "users",
+                "{{userId}}",
+                "tier"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create New Tier",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Gold Tier\",\r\n    \"description\": \"Premium customers\",\r\n    \"tierLevel\": \"GOLDEN\",\r\n    \"tierBenefits\": [\r\n        {\r\n            \"benefitType\": \"FREE_DELIVERY\",\r\n            \"value\": 1,\r\n            \"minOrderValue\": 499,\r\n            \"maxUsageLimit\": 3,\r\n            \"description\": \"Free delivery on orders above ₹499 (3 per month)\"\r\n        },\r\n        {\r\n            \"benefitType\": \"FREE_DELIVERY\",\r\n            \"value\": 1,\r\n            \"minOrderValue\": 498,\r\n            \"maxUsageLimit\": 3,\r\n            \"description\": \"Free delivery on orders above ₹499 (3 per month)\"\r\n        }\r\n    ],\r\n    \"eligibilityRules\": {\r\n        \"rules\": [\r\n            {\r\n                \"type\": \"MIN_ORDER_COUNT\",\r\n                \"thresholdValue\": 10,\r\n                \"periodDays\": 30\r\n            },\r\n            {\r\n                \"type\": \"MIN_ORDER_VALUE\",\r\n                \"thresholdValue\": 5000,\r\n                \"periodDays\": 30\r\n            }\r\n        ]\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tiers/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tiers",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Tier",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Gold Tierr\",\r\n    \"description\": \"Premium customers only\",\r\n    \"tierLevel\": \"GOLDEN\",\r\n    \"tierBenefits\": [\r\n        {\r\n            \"benefitType\": \"FREE_DELIVERY\",\r\n            \"value\": 1,\r\n            \"minOrderValue\": 200,\r\n            \"maxUsageLimit\": 31,\r\n            \"description\": \"Free delivery on orders above ₹499 (3 per month)\"\r\n        },\r\n        {\r\n            \"benefitType\": \"EARLY_ACCESS\",\r\n            \"value\": 1\r\n        }\r\n    ],\r\n    \"eligibilityRules\": {\r\n        \"rules\": [\r\n            {\r\n                \"type\": \"MIN_ORDER_COUNT\",\r\n                \"threshold\": 10,\r\n                \"periodDays\": 300\r\n            },\r\n            {\r\n                \"type\": \"MIN_ORDER_VALUE\",\r\n                \"threshold\": 5000,\r\n                \"periodDays\": 30\r\n            },\r\n            {\r\n                \"type\": \"USER_COHORT\",\r\n                \"cohortName\": \"AVC\"\r\n            }\r\n        ]\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tiers/a62eb555-439d-42fc-9434-1973c8cdafa6",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tiers",
+                "a62eb555-439d-42fc-9434-1973c8cdafa6"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Tier",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tiers/89ab9a3f-e278-4300-a48f-6927b33a01ac",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tiers",
+                "89ab9a3f-e278-4300-a48f-6927b33a01ac"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Tier Benefit",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Gold Tier\",\r\n  \"description\": \"Premium customers\",\r\n  \"tierLevel\": \"GOLDEN\",\r\n  \"eligibilityRules\": {\r\n    \"rules\": [\r\n      {\r\n        \"type\": \"MIN_ORDER_COUNT\",\r\n        \"threshold\": 10,\r\n        \"periodDays\": 30\r\n      },\r\n      {\r\n        \"type\": \"MIN_ORDER_VALUE\",\r\n        \"threshold\": 5000,\r\n        \"periodDays\": 30\r\n      }\r\n    ]\r\n  }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tiers/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tiers",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Tier Benefit",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"benefitType\": \"FREE_DELIVERY\",\r\n  \"value\": 1,\r\n  \"minOrderValue\": 499,\r\n  \"maxUsageLimit\": 3,\r\n  \"description\": \"Free delivery on orders above ₹499 (3 per month)\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tiers/benefits/eeedb956-3cda-4264-8df0-b479ec3a2b15",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tiers",
+                "benefits",
+                "eeedb956-3cda-4264-8df0-b479ec3a2b15"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Tier Benefit",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tiers/benefits/b5a704ff-b08f-4de0-b5a2-a2dc77dc1a54",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tiers",
+                "benefits",
+                "b5a704ff-b08f-4de0-b5a2-a2dc77dc1a54"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "14. Create and Update Membership Plan",
+      "item": [
+        {
+          "name": "Create Plan",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Gold Membership\",\r\n  \"description\": \"Premium membership with exclusive benefits\",\r\n  \"duration\": \"YEARLY\",\r\n  \"price\": 999.99,\r\n  \"active\": true,\r\n  \"autoRenewDefault\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/plans/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "plans",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Plan",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Gold Membershipp\",\r\n  \"description\": \"Premium membership with exclusive benefitss\",\r\n  \"duration\": \"MONTHLY\",\r\n  \"price\": 1001,\r\n  \"active\": true,\r\n  \"autoRenewDefault\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/plans/b60302a4-a756-4d22-a8a2-8f52bb4e2c79",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "plans",
+                "b60302a4-a756-4d22-a8a2-8f52bb4e2c79"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Plan",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/plans/b60302a4-a756-4d22-a8a2-8f52bb4e2c79",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "plans",
+                "b60302a4-a756-4d22-a8a2-8f52bb4e2c79"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "monthlyPlanId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "quarterlyPlanId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "yearlyPlanId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "silverTierId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "goldTierId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "platinumTierId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderId1",
+      "value": ""
+    },
+    {
+      "key": "orderId2",
+      "value": ""
+    },
+    {
+      "key": "orderId3",
+      "value": ""
+    }
+  ]
+}
